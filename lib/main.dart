@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:device_apps/device_apps.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 void main() => runApp(InstallProgressApp());
@@ -11,15 +12,18 @@ class InstallProgressApp extends StatefulWidget {
 }
 
 class _InstallProgressAppState extends State<InstallProgressApp> {
+  static const platform = MethodChannel('com.example.install_progress_app/progress');
   bool _isAppInstalled = false;
   String _appPackageName = 'jp.co.mixi.monsterstrike'; // モンスターストライクのパッケージ名
   Timer? _timer;
   double _progress = 0.0;
+  bool _nativeProgressAvailable = false;
 
   @override
   void initState() {
     super.initState();
     _checkIfAppInstalled(); // アプリがインストールされているかを定期的にチェック
+    _startProgressMonitoring(); // インストール進捗の監視を開始
   }
 
   @override
@@ -66,6 +70,27 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
     });
   }
 
+  // ネイティブコードからインストール進捗を取得するメソッド
+  void _startProgressMonitoring() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      try {
+        final int progress = await platform.invokeMethod('getProgress');
+        if (progress >= 0) {
+          setState(() {
+            _progress = progress / 100.0;
+            _nativeProgressAvailable = true;
+          });
+        } else {
+          setState(() {
+            _nativeProgressAvailable = false;
+          });
+        }
+      } on PlatformException catch (e) {
+        print("Failed to get progress: '${e.message}'.");
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -94,7 +119,9 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
                   SizedBox(height: 20),
                   Text('${(_progress * 100).toStringAsFixed(0)}%'), // 進行状況のパーセンテージ表示
                   SizedBox(height: 20),
-                  Text('Installing Monster Strike...'), // インストール中のメッセージ
+                  Text(_nativeProgressAvailable
+                      ? 'Installing Monster Strike...'
+                      : 'Monitoring installation progress...'), // インストール中のメッセージ
                 ],
               ),
             ],
