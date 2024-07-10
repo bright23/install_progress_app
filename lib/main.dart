@@ -50,24 +50,9 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
   void _launchURL(String url) async {
     if (await canLaunch(url)) {
       await launch(url);
-      _simulateProgress(); // URLを開いた後、仮想的な進行状況をシミュレート
     } else {
       throw 'Could not launch $url';
     }
-  }
-
-  // 仮想的な進行状況をシミュレートするメソッド
-  void _simulateProgress() {
-    _progress = 0.0;
-    _timer = Timer.periodic(Duration(milliseconds: 100), (timer) {
-      setState(() {
-        _progress += 0.01;
-        if (_progress >= 1.0) {
-          _progress = 1.0; // 進行状況が100%に達したら設定
-          timer.cancel(); // タイマーをキャンセル
-        }
-      });
-    });
   }
 
   // ネイティブコードからインストール進捗を取得するメソッド
@@ -80,10 +65,12 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
             _progress = progress / 100.0;
             _nativeProgressAvailable = true;
           });
+          print("Progress from native: $progress"); // デバッグ用ログ出力
         } else {
           setState(() {
             _nativeProgressAvailable = false;
           });
+          print("No progress available from native"); // デバッグ用ログ出力
         }
       } on PlatformException catch (e) {
         print("Failed to get progress: '${e.message}'.");
