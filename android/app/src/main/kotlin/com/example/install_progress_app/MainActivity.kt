@@ -20,13 +20,20 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "getProgress") {
-                val progress = NotificationServiceListener.progress
-                result.success(progress)
-            } else if (call.method == "startNotificationService") {
-                startNotificationService()
-            } else if (call.method == "stopNotificationService") {
-                stopNotificationService()
+            when (call.method) {
+                "getProgress" -> {
+                    val progress = NotificationServiceListener.progress
+                    result.success(progress)
+                }
+                "startNotificationService" -> {
+                    startNotificationService()
+                    result.success(null)
+                }
+                "stopNotificationService" -> {
+                    stopNotificationService()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
         }
     }

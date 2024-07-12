@@ -26,6 +26,14 @@ class NotificationServiceListener : NotificationListenerService() {
         }
     }
 
+    private lateinit var methodChannel: MethodChannel
+
+    override fun onCreate() {
+        super.onCreate()
+        val flutterEngine = FlutterEngine(this)
+        methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.install_progress_app/progress")
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         Log.d(TAG, "Notification posted from package: ${sbn.packageName}")
         val notification: Notification = sbn.notification
@@ -34,22 +42,14 @@ class NotificationServiceListener : NotificationListenerService() {
             if (progressValue != -1) {
                 lastProgress = progressValue
                 progress = progressValue
-                Log.d(TAG, "Progress updated to: $progress")
+                methodChannel.invokeMethod("updateProgress", progress)
                 if (progress >= 100) {
                     completeInstallation()
                 }
             } else {
                 progress = lastProgress
-                Log.d(TAG, "Using last known progress: $progress")
             }
-            Log.d(TAG, "Extracted progress: $progressValue")
-        } else {
-            Log.d(TAG, "Received notification from package: ${sbn.packageName}, not from Google Play")
         }
-    }
-
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        Log.d(TAG, "Notification removed from package: ${sbn.packageName}")
     }
 
     private fun extractProgress(notification: Notification): Int {
@@ -64,12 +64,6 @@ class NotificationServiceListener : NotificationListenerService() {
 
     private fun completeInstallation() {
         Log.d(TAG, "Installation completed.")
-        sendMessageToFlutter("completeProgress")
-    }
-
-    private fun sendMessageToFlutter(method: String) {
-        val flutterEngine = FlutterEngine(this)
-        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.install_progress_app/progress")
-        channel.invokeMethod(method, null)
+        methodChannel.invokeMethod("completeProgress", null)
     }
 }
