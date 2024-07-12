@@ -14,7 +14,7 @@ class InstallProgressApp extends StatefulWidget {
 class _InstallProgressAppState extends State<InstallProgressApp> {
   static const platform = MethodChannel('com.example.install_progress_app/progress');
   bool _isAppInstalled = false;
-  String _appPackageName = 'jp.co.mixi.monsterstrike'; // モンスターストライクのパッケージ名
+  String _appPackageName = 'jp.co.mixi.monsterstrike';
   Timer? _timer;
   double _progress = 0.0;
   bool _nativeProgressAvailable = false;
@@ -22,31 +22,29 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
   @override
   void initState() {
     super.initState();
-    _checkIfAppInstalled(); // アプリがインストールされているかを定期的にチェック
-    _startProgressMonitoring(); // インストール進捗の監視を開始
+    _checkIfAppInstalled();
+    _startProgressMonitoring();
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // タイマーをキャンセルしてリソースを解放
+    _timer?.cancel();
     super.dispose();
   }
 
-  // モンスターストライクがインストールされているかを定期的にチェックするメソッド
   void _checkIfAppInstalled() {
     _timer = Timer.periodic(Duration(seconds: 5), (timer) async {
       bool isInstalled = await DeviceApps.isAppInstalled(_appPackageName);
       if (isInstalled) {
         setState(() {
           _isAppInstalled = true;
-          _progress = 1.0; // インストールされている場合、進行状況を100%に設定
+          _progress = 1.0;
         });
-        timer.cancel(); // タイマーをキャンセル
+        timer.cancel();
       }
     });
   }
 
-  // 指定されたURLを開くメソッド
   void _launchURL(String url) async {
     if (await canLaunch(url)) {
       await launch(url);
@@ -55,7 +53,6 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
     }
   }
 
-  // ネイティブコードからインストール進捗を取得するメソッド
   void _startProgressMonitoring() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
       try {
@@ -65,17 +62,19 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
             _progress = progress / 100.0;
             _nativeProgressAvailable = true;
           });
-          print("Progress from native: $progress"); // デバッグ用ログ出力
         } else {
           setState(() {
             _nativeProgressAvailable = false;
           });
-          print("No progress available from native"); // デバッグ用ログ出力
         }
       } on PlatformException catch (e) {
         print("Failed to get progress: '${e.message}'.");
       }
     });
+  }
+
+  void _startNotificationService() {
+    platform.invokeMethod('startNotificationService');
   }
 
   @override
@@ -89,26 +88,25 @@ class _InstallProgressAppState extends State<InstallProgressApp> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              // Play Storeを開くボタン
               ElevatedButton(
                 onPressed: () {
                   _launchURL('https://play.google.com/store/apps/details?id=$_appPackageName');
+                  _startNotificationService();
                 },
                 child: Text('Open Monster Strike in Play Store'),
               ),
               SizedBox(height: 20),
-              // インストールの状態に応じて表示を切り替え
               _isAppInstalled
-                  ? Text('Monster Strike is installed!') // アプリがインストールされている場合の表示
+                  ? Text('Monster Strike is installed!')
                   : Column(
                 children: <Widget>[
-                  LinearProgressIndicator(value: _progress), // 進行状況バー
+                  LinearProgressIndicator(value: _progress),
                   SizedBox(height: 20),
-                  Text('${(_progress * 100).toStringAsFixed(0)}%'), // 進行状況のパーセンテージ表示
+                  Text('${(_progress * 100).toStringAsFixed(0)}%'),
                   SizedBox(height: 20),
                   Text(_nativeProgressAvailable
                       ? 'Installing Monster Strike...'
-                      : 'Monitoring installation progress...'), // インストール中のメッセージ
+                      : 'Monitoring installation progress...'),
                 ],
               ),
             ],
